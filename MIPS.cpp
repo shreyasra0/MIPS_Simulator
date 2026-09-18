@@ -302,20 +302,20 @@ int main()
       myRF.ReadWrite(bitset<5>(0), bitset<5>(0), rt, result, bitset<1>(1));
     }
     else if (opcode == bitset<6>("000100")) {
-      bitset<5> rs = (instruction >> 21).to_ulong();
-      bitset<5> rt = (instruction >> 16).to_ulong();
-      bitset<16> immediate = (instruction >> 0).to_ulong();
+      bitset<5> rs = bitset<5>((instruction >> 21).to_ulong());
+      bitset<5> rt = bitset<5>((instruction >> 16).to_ulong());
+      bitset<16> immediate = bitset<16>((instruction >> 0).to_ulong());
       myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
       bitset<32> diff = myALU.ALUOperation(SUBU, myRF.ReadData1, myRF.ReadData2);
-      branch_taken = (diff == bitset<32>(0));
-      unsigned long immediate_value = immediate.to_ulong();
       bool branch_taken = (diff == bitset<32>(0));
+      unsigned long immediate_value = immediate.to_ulong();
       bitset<32> sign_extended_immediate;
       if ((immediate_value >> 15) & 0x1) {
         sign_extended_immediate = bitset<32>(immediate_value | 0xFFFF0000);
       } else {
         sign_extended_immediate = bitset<32>(immediate_value);
       }
+
       if (branch_taken) {
         next_pc = bitset<32>(PC.to_ulong() + 4 + (sign_extended_immediate.to_ulong() << 2));
       }

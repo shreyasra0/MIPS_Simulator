@@ -138,6 +138,12 @@ class INSMem
        * Read the byte at the ReadAddress and the following three byte,
        * and return the read result. 
        */
+      unsigned long address_read = ReadAddress.to_ulong();
+      unsigned long first_instruction = IMem[address_read].to_ulong();
+      unsigned long second_instruction = IMem[address_read + 1].to_ulong();
+      unsigned long third_instruction = IMem[address_read + 2].to_ulong();
+      unsigned long fourth_instruction = IMem[address_read + 3].to_ulong();
+      Instruction = bitset<32>(first_instruction << 24 | second_instruction << 16 | third_instruction << 8 | fourth_instruction);
       return Instruction;     
     }     
 
@@ -180,6 +186,26 @@ class DataMem
        * If readmem enabled, return the DMem read result as readdata.
        */
       // TODO: implement!
+      if (readmem == 1) {
+        unsigned long address_read = Address.to_ulong();
+        unsigned long first_data = DMem[address_read].to_ulong();
+        unsigned long second_data = DMem[address_read + 1].to_ulong();
+        unsigned long third_data = DMem[address_read + 2].to_ulong();
+        unsigned long fourth_data = DMem[address_read + 3].to_ulong();
+        readdata = bitset<32>(first_data << 24 | second_data << 16 | third_data << 8 | fourth_data);
+      }
+      if (writemem == 1) {
+        unsigned long address_write = Address.to_ulong();
+        unsigned long write_data = WriteData.to_ulong();
+        unsigned long first_data_write = write_data >> 24;
+        unsigned long second_data_write = write_data >> 16;
+        unsigned long third_data_write = write_data >> 8;
+        unsigned long fourth_data_write = write_data;
+        DMem[address_write] = bitset<8>(first_data_write);
+        DMem[address_write + 1] = bitset<8>(second_data_write);
+        DMem[address_write + 2] = bitset<8>(third_data_write);
+        DMem[address_write + 3] = bitset<8>(fourth_data_write);
+      }
       return readdata;     
     }   
 

@@ -85,10 +85,10 @@ class ALU
        */
       // TODO: implement!
       if (ALUOP == ADDU) {
-        ALUresult = oprand1 + oprand2;
+        ALUresult = bitset<32>(oprand1.to_ulong() + oprand2.to_ulong());
       }
       else if (ALUOP == SUBU) {
-        ALUresult = oprand1 - oprand2;
+        ALUresult = bitset<32>(oprand1.to_ulong() - oprand2.to_ulong());
       }
       else if (ALUOP == AND) {
         ALUresult = oprand1 & oprand2;
@@ -244,19 +244,124 @@ int main()
   while (1)  // TODO: implement!
   {
     // Fetch: fetch an instruction from myInsMem.
+    bitset<32> instruction = myInsMem.ReadMemory(PC);
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
-
+    std::string s = "";
+    for (int i = 0; i < 32; i++) {
+      s += "1";
+    }
+    if (instruction == bitset<32>(s)) {
+      break;
+    }
     // decode(Read RF): get opcode and other signals from instruction, decode instruction
-
     // Execute: after decoding, ALU may run and return result
-
     // Read/Write Mem: access data memory (myDataMem)
-
     // Write back to RF: some operations may write things to RF
+    bitset<6> opcode = (instruction >> 26).to_ulong();
+    bitset<32> next_pc = bitset<32>(PC.to_ulong() + 4);
 
+    if (opcode == bitset<6>("000000")) {
+      bitset<5> rs = (instruction >> 21).to_ulong();
+      bitset<5> rt = (instruction >> 16).to_ulong();
+      bitset<5> rd = (instruction >> 11).to_ulong();
+      bitset<5> shamt = (instruction >> 6).to_ulong();
+      bitset<6> funct = (instruction >> 0).to_ulong();
+      myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
+      bitset<32> result;
+      if (funct == bitset<6>("100001")) {
+         result = myALU.ALUOperation(ADDU, myRF.ReadData1, myRF.ReadData2);
+      }
+      else if (funct == bitset<6>("100011")) {
+        result = myALU.ALUOperation(SUBU, myRF.ReadData1, myRF.ReadData2);
+      }
+      else if (funct == bitset<6>("100100")) {
+        result = myALU.ALUOperation(AND, myRF.ReadData1, myRF.ReadData2);
+      }
+      else if (funct == bitset<6>("100101")) {
+        result = myALU.ALUOperation(OR, myRF.ReadData1, myRF.ReadData2);
+      }
+      else if (funct == bitset<6>("100111")) {
+        result = myALU.ALUOperation(NOR, myRF.ReadData1, myRF.ReadData2);
+      }
+      myRF.ReadWrite(bitset<5>(0), bitset<5>(0), rd, result, bitset<1>(1));
+    }
+    else if (opcode == bitset<6>("001001")) {
+      bitset<5> rs = (instruction >> 21).to_ulong();
+      bitset<5> rt = (instruction >> 16).to_ulong();
+      bitset<16> immediate = (instruction >> 0).to_ulong();
+      myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
+      unsigned long immediate_value = immediate.to_ulong();
+      bitset<32> sign_extended_immediate;
+      if ((immediate_value >> 15) & 0x1) {
+        sign_extended_immediate = bitset<32>(immediate_value | 0xFFFF0000);
+      } else {
+        sign_extended_immediate = bitset<32>(immediate_value);
+      }
+      bitset<32> result = myALU.ALUOperation(ADDU, myRF.ReadData1, sign_extended_immediate);
+      myRF.ReadWrite(bitset<5>(0), bitset<5>(0), rt, result, bitset<1>(1));
+    }
+    else if (opcode == bitset<6>("000100")) {
+      bitset<5> rs = (instruction >> 21).to_ulong();
+      bitset<5> rt = (instruction >> 16).to_ulong();
+      bitset<16> immediate = (instruction >> 0).to_ulong();
+      myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
+      bitset<32> diff = myALU.ALUOperation(SUBU, myRF.ReadData1, myRF.ReadData2);
+      branch_taken = (diff == bitset<32>(0));
+      unsigned long immediate_value = immediate.to_ulong();
+      bool branch_taken = (diff == bitset<32>(0));
+      bitset<32> sign_extended_immediate;
+      if ((immediate_value >> 15) & 0x1) {
+        sign_extended_immediate = bitset<32>(immediate_value | 0xFFFF0000);
+      } else {
+        sign_extended_immediate = bitset<32>(immediate_value);
+      }
+      if (branch_taken) {
+        next_pc = bitset<32>(PC.to_ulong() + 4 + (sign_extended_immediate.to_ulong() << 2));
+      }
+    }
+    else if (opcode == bitset<6>("000010")) {
+      bitset<26> address = bitset<26>((instruction >> 0).to_ulong());
+      unsigned long target = (address.to_ulong() << 2) | ((PC.to_ulong() + 4) & 0xF0000000);
+      next_pc = bitset<32>(target);
+    }
+    else if (opcode == bitset<6>("100011")) {
+      bitset<5> rs = bitset<5>((instruction >> 21).to_ulong());
+      bitset<5> rt = bitset<5>((instruction >> 16).to_ulong());
+      bitset<16> immediate = bitset<16>((instruction >> 0).to_ulong());
+      myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
+      unsigned long immediate_value = immediate.to_ulong();
+      bitset<32> sign_extended_immediate;
+      if ((immediate_value >> 15) & 0x1) {
+        sign_extended_immediate = bitset<32>(immediate_value | 0xFFFF0000);
+      } else {
+        sign_extended_immediate = bitset<32>(immediate_value);
+      }
+      bitset<32> address = myALU.ALUOperation(ADDU, myRF.ReadData1, sign_extended_immediate);
+      bitset<32> loaded_value = myDataMem.MemoryAccess(address, bitset<32>(0), bitset<1>(1), bitset<1>(0));
+      myRF.ReadWrite(bitset<5>(0), bitset<5>(0), rt, loaded_value, bitset<1>(1));
+    }
+    else if (opcode == bitset<6>("101011")) {
+      bitset<5> rs = bitset<5>((instruction >> 21).to_ulong());
+      bitset<5> rt = bitset<5>((instruction >> 16).to_ulong());
+      bitset<16> immediate = bitset<16>((instruction >> 0).to_ulong());
+      myRF.ReadWrite(rs, rt, bitset<5>(0), bitset<32>(0), bitset<1>(0));
+      unsigned long immediate_value = immediate.to_ulong();
+      bitset<32> sign_extended_immediate;
+      if ((immediate_value >> 15) & 0x1) {
+        sign_extended_immediate = bitset<32>(immediate_value | 0xFFFF0000);
+      } else {
+        sign_extended_immediate = bitset<32>(immediate_value);
+      }
+      
+      bitset<32> address = myALU.ALUOperation(ADDU, myRF.ReadData1, sign_extended_immediate);
+      myDataMem.MemoryAccess(address, myRF.ReadData2, bitset<1>(0), bitset<1>(1));
+    }
+    else if (opcode == bitset<6>("111111")) {
+      break;
+    }
     // Update PC
-
+    PC = next_pc;
 
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    

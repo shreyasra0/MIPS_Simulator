@@ -37,7 +37,17 @@ class RF
        * This function is used to read or write data from/to the register, depending on the value of WrtEnable.
        * Put the read results to the ReadData1 and ReadData2.
        */
-      // TODO: implement!               
+      // TODO: implement!
+      unsigned long address_first_read = RdReg1.to_ulong();
+      ReadData1 = Registers[address_first_read]; 
+      unsigned long address_second_read = RdReg2.to_ulong();
+      ReadData2 = Registers[address_second_read];
+      if (WrtEnable == 1) {
+        if (WrtReg != 0) {
+          unsigned long address_write = WrtReg.to_ulong();
+          Registers[address_write] = WrtData;
+        }
+      }   
     }
 
     void OutputRF()

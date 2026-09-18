@@ -84,6 +84,22 @@ class ALU
        * ALU operation depends on the ALUOP, which are definded as ADDU, SUBU, etc. 
        */
       // TODO: implement!
+      if (ALUOP == ADDU) {
+        ALUresult = oprand1 + oprand2;
+      }
+      else if (ALUOP == SUBU) {
+        ALUresult = oprand1 - oprand2;
+      }
+      else if (ALUOP == AND) {
+        ALUresult = oprand1 & oprand2;
+      }
+      else if (ALUOP == OR) {
+        ALUresult = oprand1 | oprand2;
+      }
+      else if (ALUOP == NOR) {
+        ALUresult = ~(oprand1 | oprand2);
+      } 
+
       return ALUresult;
     }            
 };
